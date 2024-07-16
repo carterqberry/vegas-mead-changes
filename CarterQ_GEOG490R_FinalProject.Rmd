@@ -1,0 +1,264 @@
+---
+title: "GEOG 490R Final Project"
+author: "Carter Quesenberry"
+output:
+  html_document:
+    code_folding: hide
+
+---
+
+#### Introduction
+
+Urbanization is a powerful force in shaping landscapes worldwide, and nowhere is this transformation more evident than in Las Vegas, Nevada. Over recent decades, Las Vegas has experienced rapid urban growth.  In 1950, its population was 34,828, but by 2024, it had surged to an estimated 2,952,756 residents  (World Population Review, 2024). This extreme growth has been fueled by factors like population expansion, tourism, and infrastructural development.
+
+In addition to urbanization, the region faces unique challenges related to water resources, particularly its reliance on the Colorado River and the critical reservoir of Lake Mead. As the city continues to grow, the demand for these vital water sources will only increase, and is made worse by the surrounding arid desert environment.  The United States Bureau of Reclamation predicts that Lake Mead's water level will drop to 1,056.19 feet by December 2024 and further to 1,044.33 feet by December 2025. This is very close to the lowest recorded level since it was filled at 1,041.71 feet above sea level (USBR, 2024).
+
+#### Analysis
+
+I wanted to get two Landsat images spanning a wide time gap. From USGS Earth Explorer I downloaded a Landsat 7 image from October 1999, and a Landsat 9 image from January 2024. I added the bands into an R script and made sure they were projected to the same coordinate system (NAD83). I then copied and cropped them to Las Vegas and Lake Mead. 
+
+```{r, message = FALSE, warning = FALSE, results = 'hide', collapse=TRUE }
+#carterquesenberry final project
+library(terra)
+
+#add landsat 7 (1999) data:
+landsat7_blue <- rast("/Users/carterqberry/R Studio/Final Project/Landsat/LE07_L1TP_039035_19991008_20200918_02_T1/LE07_L1TP_039035_19991008_20200918_02_T1_B1.TIF")
+landsat7_green <- rast("/Users/carterqberry/R Studio/Final Project/Landsat/LE07_L1TP_039035_19991008_20200918_02_T1/LE07_L1TP_039035_19991008_20200918_02_T1_B2.TIF")
+landsat7_red <- rast("/Users/carterqberry/R Studio/Final Project/Landsat/LE07_L1TP_039035_19991008_20200918_02_T1/LE07_L1TP_039035_19991008_20200918_02_T1_B3.TIF")
+landsat7_nir <- rast("/Users/carterqberry/R Studio/Final Project/Landsat/LE07_L1TP_039035_19991008_20200918_02_T1/LE07_L1TP_039035_19991008_20200918_02_T1_B4.TIF")
+landsat7_swir <- rast("/Users/carterqberry/R Studio/Final Project/Landsat/LE07_L1TP_039035_19991008_20200918_02_T1/LE07_L1TP_039035_19991008_20200918_02_T1_B5.TIF")
+
+#combine all bands:
+landsat7 <- c(landsat7_blue, landsat7_green, landsat7_red, landsat7_nir, landsat7_swir)
+#reproject to NAD83 crs:
+landsat7 <- project(landsat7, "EPSG:4269")
+
+#add landsat 9 (2023) data:
+landsat9_blue <- rast("/Users/carterqberry/R Studio/Final Project/Landsat/LC09_L1TP_039035_20231213_20231213_02_T1/LC09_L1TP_039035_20231213_20231213_02_T1_B2.TIF")
+landsat9_green<- rast("/Users/carterqberry/R Studio/Final Project/Landsat/LC09_L1TP_039035_20231213_20231213_02_T1/LC09_L1TP_039035_20231213_20231213_02_T1_B3.TIF")
+landsat9_red <- rast("/Users/carterqberry/R Studio/Final Project/Landsat/LC09_L1TP_039035_20231213_20231213_02_T1/LC09_L1TP_039035_20231213_20231213_02_T1_B4.TIF")
+landsat9_nir <- rast("/Users/carterqberry/R Studio/Final Project/Landsat/LC09_L1TP_039035_20231213_20231213_02_T1/LC09_L1TP_039035_20231213_20231213_02_T1_B5.TIF")
+landsat9_swir1 <- rast("/Users/carterqberry/R Studio/Final Project/Landsat/LC09_L1TP_039035_20231213_20231213_02_T1/LC09_L1TP_039035_20231213_20231213_02_T1_B6.TIF")
+landsat9_swir2 <- rast("/Users/carterqberry/R Studio/Final Project/Landsat/LC09_L1TP_039035_20231213_20231213_02_T1/LC09_L1TP_039035_20231213_20231213_02_T1_B7.TIF")
+
+#combine all bands:
+landsat9 <- c(landsat9_blue, landsat9_green, landsat9_red, landsat9_nir, landsat9_swir1, landsat9_swir2)
+#reproject to NAD83 crs:
+landsat9 <- project(landsat9, "EPSG:4269")
+```
+
+Here is what the Landsat images look like:
+
+```{r, message = FALSE, warning = FALSE, collapse=TRUE}
+#set las vegas extent:
+vegas_extent <- as.polygons(ext(c(-115.4, -114.95, 36, 36.32)))
+crs(vegas_extent) <- "EPSG:4269"
+vegas_extent <- project(vegas_extent, "EPSG:4269")
+
+#crop landsat 7 to vegas extent:
+landsat7_vegas <- crop(landsat7, vegas_extent)
+plotRGB(landsat7_vegas, r=3, g=2, b=1, stretch = "linear", main="Landsat 7 Image of Las Vegas", mar = 2)
+
+#crop landsat 9 to vegas extent:
+landsat9_vegas <- crop(landsat9, vegas_extent)
+plotRGB(landsat9_vegas, r=3, g=2, b=1, stretch = "linear", main="Landsat 9 Image of Las Vegas", mar = 2)
+
+#set lake mead extent:
+mead_extent <- as.polygons(ext(c(-114.95, -113.85, 35.9, 36.6)))
+crs(mead_extent) <- "EPSG:4269"
+mead_extent <- project(mead_extent, "EPSG:4269")
+
+#crop landsat 7 to mead extent:
+landsat7_mead <- crop(landsat7, mead_extent)
+plotRGB(landsat7_mead, r=3, g=2, b=1, stretch = "linear", main="Landsat 7 Image of Lake Mead", mar = 2)
+
+#crop landsat 9 to mead extent:
+landsat9_mead <- crop(landsat9, mead_extent)
+plotRGB(landsat9_mead, r=3, g=2, b=1, stretch = "linear", main="Landsat 9 Image of Lake Mead", mar = 2)
+```
+
+The amount of built area (or urban development) in a city can be measured by calculating a Normalized Difference Built-Up Index (NDBI) from Landsat bands using this formula:
+
+NDBI = (SWIR - NIR) / (SWIR + NIR), where SWIR is Short Wavelength InfraRed light, and NIR is Near-InfraRed light.
+
+Here is the NDBI results:
+
+```{r, message = FALSE, warning = FALSE, collapse=FALSE}
+#landsat 7 ndbi:
+landsat7_ndbi <- (landsat7_vegas[[5]]-landsat7_vegas[[4]]) / (landsat7_vegas[[5]]+landsat7_vegas[[4]])
+landsat7_ndbi <- landsat7_ndbi < 0.05
+plot(landsat7_ndbi, col = c("transparent", "orange"), legend = FALSE, main = "NDBI Image of Las Vegas in 1999")
+legend("topleft", legend = "Built Area", fill = "orange", cex = .6, inset = c(0.12, 0.01))
+
+#landsat 9 ndbi:
+landsat9_ndbi <- (landsat9_vegas[[5]]-landsat9_vegas[[4]]) / (landsat9_vegas[[5]]+landsat9_vegas[[4]])
+landsat9_ndbi <- landsat9_ndbi < 0
+plot(landsat9_ndbi, col = c("transparent","orange"), legend = FALSE, main = "NDBI Image of Las Vegas in 2024")
+legend("topleft", legend = "Built Area", fill = "orange", cex = .6, inset = c(0.12, 0.01))
+```
+
+The amount of water in an area can be measured by calculating a Modified Normalized Difference Water Index (MNDWI) from Landsat bands using this formula:
+
+MNDWI = (Green - SWIR) / (Green + SWIR), where SWIR is Short Wavelength InfraRed light, and Green is visible Green light.
+
+Here is the MNDWI results:
+
+```{r, message = FALSE, warning = FALSE, collapse=FALSE}
+
+#landsat 7 mndwi:
+landsat7_mndwi <- (landsat7_mead[[2]]-landsat7_mead[[5]]) / (landsat7_mead[[2]]+landsat7_mead[[5]])
+landsat7_mndwi <- landsat7_mndwi > 0.2
+plot(landsat7_mndwi, col = c("transparent","#97f5ff"), legend = FALSE, main = "MNDWI Image of Lake Mead in 1999")
+legend("topleft", legend = "Water", fill = "#97f5ff", cex = .6, inset = c(0.075, 0.01))
+
+#landsat 9 mndwi:
+landsat9_mndwi <- (landsat9_mead[[2]]-landsat9_mead[[5]]) / (landsat9_mead[[2]]+landsat9_mead[[5]])
+landsat9_mndwi <- landsat9_mndwi > 0.1
+plot(landsat9_mndwi, col = c("transparent","#97f5ff"), legend = FALSE, main = "MNDWI Image of Lake Mead in 2024")
+legend("topleft", legend = "Water", fill = "#97f5ff", cex = .6, inset = c(0.075, 0.01))
+```
+
+#### Results
+
+Finally, I subtracted the 2017 Urban Area from the 2022 Urban Area to get a polygon of just the areas of growth. 
+
+And I subtracted the 2022 Lake Mead from the 2017 Lake Mead to get a polygon of just the areas where the water level dropped. 
+
+
+```{r, message = FALSE, warning = FALSE, collapse=TRUE}
+#match the extents:
+landsat7_mndwi <- resample(landsat7_mndwi, landsat9_mndwi)
+landsat7_ndbi <- resample(landsat7_ndbi, landsat9_ndbi)
+
+#create difference maps:
+mead_diff <- landsat9_mndwi - landsat7_mndwi
+plot(mead_diff, col = c("red", "transparent"), main = "1999-2024 Lake Mead Water Level Changes")
+legend("topleft", legend = "Difference", fill = "red", cex = .7, inset = c(0.045, 0.01))
+
+vegas_diff <- landsat7_ndbi - landsat9_ndbi
+plot(vegas_diff, col = c("red", "transparent"), main = "1999-2024 Las Vegas Urban Growth Changes")
+legend("topleft", legend = "Difference", fill = "red", cex = .7, inset = c(0.095, 0.01))
+
+#color counties by amount of change:
+#add precincts:
+vegas_precincts <- vect("/Users/carterqberry/Downloads/Precincts/Precincts.shp")
+#project to same coordinate system:
+vegas_precincts <- project(vegas_precincts, "EPSG:4269")
+
+#convert vegas_diff raster to polygons:
+polygons <- terra::as.polygons(vegas_diff)
+
+#crop to the same area:
+vegas_precincts <- crop(vegas_precincts, vegas_diff)
+
+# extract raster values for each precinct
+values <- extract(vegas_diff, vegas_precincts)
+
+# get the mean of the values for each precinct
+mean_values <- sapply(values, function(x) mean(x, na.rm = TRUE))
+
+# make a color palette
+colors <- colorRampPalette(c("white", "red"))(100)
+
+# normalize the mean values to range from 0 to 1
+normalized_values <- (mean_values - min(mean_values, na.rm = TRUE)) / (max(mean_values, na.rm = TRUE) - min(mean_values, na.rm = TRUE))
+
+# put the normalized values to colors
+vegas_precincts$color <- colors[cut(normalized_values, breaks = seq(0, 1, length.out = 101), labels = FALSE)]
+
+# plot (couldnt get it color as a gradient, but thats okay)
+plot(vegas_precincts, col = vegas_precincts$color, main = "Las Vegas Precincts with Most Amount of Change")
+```
+
+#### Quantitative Results
+
+```{r, warning = FALSE, collapse=TRUE}
+# calculate the total number of pixels:
+total_pixels_vegas <- ncell(landsat7_ndbi)
+total_pixels_mead <- ncell(landsat7_mndwi)
+total_pixels_vegas_9 <- ncell(landsat9_ndbi)
+total_pixels_mead_9 <- ncell(landsat9_mndwi)
+
+# calculate the number of urban pixels and water pixels:
+urban_pixels_vegas <- sum(landsat7_ndbi[] > 0.05)
+urban_pixels_vegas_9 <- sum(landsat9_ndbi[] > 0.05)
+water_pixels_mead_9 <- sum(landsat9_mndwi[] > 0.1)
+
+# check if there are any water pixels in the lake mead region:
+if (sum(landsat7_mndwi[] > 0.2, na.rm = TRUE) > 0) {
+  # calculate the number of water pixels
+  water_pixels_mead <- sum(landsat7_mndwi[] > 0.2, na.rm = TRUE)
+}
+
+# get the percentage of urban area and water area
+percentage_urban_vegas <- (urban_pixels_vegas / total_pixels_vegas) * 100
+percentage_water_mead <- (water_pixels_mead / total_pixels_mead) * 100
+percentage_urban_vegas_9 <- (urban_pixels_vegas_9 / total_pixels_vegas_9) * 100
+percentage_water_mead_9 <- (water_pixels_mead_9 / total_pixels_mead_9) * 100
+
+# round the percentages:
+percentage_urban_vegas <- round(percentage_urban_vegas, 2)
+percentage_water_mead <- round(percentage_water_mead, 2)
+percentage_urban_vegas_9 <- round(percentage_urban_vegas_9, 2)
+percentage_water_mead_9 <- round(percentage_water_mead_9, 2)
+```
+```{r}
+# print the results:
+print(paste0("Percentage of urban area in Las Vegas in 1999: ", percentage_urban_vegas, "%"))
+print(paste0("Percentage of water area in Lake Mead in 1999: ", percentage_water_mead, "%"))
+print(paste0("Percentage of urban area in Las Vegas in 2024: ", percentage_urban_vegas_9, "%"))
+print(paste0("Percentage of water area in Lake Mead in 2024: ", percentage_water_mead_9, "%"))
+
+print(paste0("Urban area in Las Vegas grew by ", percentage_urban_vegas_9-percentage_urban_vegas, "% from 1999-2024"))
+print(paste0("Water area in Lake Mead shrunk by ", percentage_water_mead-percentage_water_mead_9, "% from 1999-2024"))
+
+# calculate the differences:
+urban_growth <- percentage_urban_vegas_9 - percentage_urban_vegas
+water_decrease <- percentage_water_mead - percentage_water_mead_9
+
+# create data for the pie charts:
+labels_urban <- c("Urban Area in 1999", "Urban Growth in 2024")
+percentages_urban <- c(percentage_urban_vegas, urban_growth, 100 - percentage_urban_vegas_9)
+labels_water <- c("Water Area in 2024", "Water Area Decrease from 1999)", "Other")
+percentages_water <- c(percentage_water_mead, water_decrease, 100 - percentage_water_mead)
+
+# create colors for the pie charts:
+colors_urban <- c("blue", "lightblue", "white")
+colors_water <- c("lightblue", "lightcoral", "white")
+
+# create the pie charts:
+pie(percentages_urban, labels = labels_urban, col = colors_urban, main = "Percentage of Urban Area")
+pie(percentages_water, labels = labels_water, col = colors_water, main = "Percentage of Water Area")
+```
+
+#### Conclusion
+
+In conclusion, the GIS analysis in this project has shed light on the dynamics of urban growth and its implications for water resources in Las Vegas and Lake Mead. Through the examination of spatial patterns, land cover changes, and water level fluctuations, several key insights have been found.
+
+The analysis of the NDBI and MNDWI maps spanning 25 years reveals a significant transformation in the urban land cover of Las Vegas and the water levels of Lake Mead. It is evident that not only has Las Vegas experienced a notable increase in urbanization during this time period, but Lake Mead has experienced a notable decrease in water levels and size. 
+
+The comparison between the NDBI maps of 1999 and 2024 clearly highlights this transformation, showing previously barren areas now densely populated with urban development. This growth has not only reshaped the urban landscape but has also posed significant challenges to sustainable development.
+
+The comparison between MNDWI maps of 1999 and 2024 reveals the effects of this massive growth, showing previously high water levels now much lower.  The change in Lake Mead's water levels shows the critical importance of water resources management in the region. With projections and satellite imagery indicating a steady decline in water levels, urgent measures are required to address water scarcity and ensure the long-term sustainability of water supply for both urban and ecological needs.
+
+Overall, this project emphasizes the importance of GIS techniques in understanding the complex interactions between urbanization and water resource dynamics. By providing valuable insights into these processes, this project offers a foundation for informed decision-making and strategic planning to create sustainable development for Las Vegas and its surrounding region in the future. As the city continues to evolve, it is crucial that we work together to address the challenges created by urban growth.
+
+</br>
+
+#### References
+
+Lutus, P. (2024). Lake Mead Water Levels — Historical and Current. Arachnoid.  https://arachnoid.com/NaturalResources/  
+
+MacroTrends. (2023). Las Vegas Metro Area Population 1950-2024. MacroTrends.  https://www.macrotrends.net/global-metrics/cities/23043/las-vegas/population 
+
+Neilsberg Research. (2023). Las Vegas, NV Population by Year.   https://www.neilsberg.com/insights/las-vegas-nv-population-by-year/  
+
+RStudio desktop. Posit. (2024, January 11).  https://posit.co/download/rstudio-desktop/    
+
+United Nations. (2022). World Population Prospects - Population Division. United Nations.  https://population.un.org/wpp/  
+
+USGS. (2024). Earth Explorer. EarthExplorer.  https://earthexplorer.usgs.gov/  
+
+U.S. Department of the Interior Bureau of Reclamation. (2024). HydroData Navigator. Bureau of Reclamation.  https://www.usbr.gov/uc/water/hydrodata/  
+
+World Population Review. (2024). Las Vegas Population 2024.  https://worldpopulationreview.com/world-cities/las-vegas-population 
